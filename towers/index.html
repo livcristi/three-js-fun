@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Platform Visualization</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="index.js"></script>
+    <style>
+      #c {
+        width: 800px;
+        height: 400px;
+        display: block;
+      }
+      /* body {
+        margin: 0;
+        overflow: hidden;
+      } */
+      #debug {
+        position: absolute;
+        left: 1em;
+        top: 1em;
+        padding: 1em;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="debug">
+      <div>x:<span id="x"></span></div>
+      <div>y:<span id="y"></span></div>
+      <div>z:<span id="z"></span></div>
+    </div>
+  </body>
+</html>
