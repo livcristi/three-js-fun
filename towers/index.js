@@ -57,6 +57,7 @@ function main() {
 
   // scene
   const scene = new THREE.Scene();
+  scene.background = new THREE.Color("#ffe8d6");
 
   // camera
   const fov = 45;
@@ -99,7 +100,7 @@ function main() {
   const platformSize = 10;
   const platformGeometry = new THREE.PlaneGeometry(platformSize, platformSize);
   const platformMaterial = new THREE.MeshBasicMaterial({
-    color: 0x787878,
+    color: "#6b705c",
     side: THREE.DoubleSide,
   });
   const platformMesh = new THREE.Mesh(platformGeometry, platformMaterial);
@@ -114,6 +115,7 @@ function main() {
   const gridSize = 4;
   for (let posX = 0; posX < gridSize; ++posX) {
     for (let posZ = 0; posZ < gridSize; ++posZ) {
+      // construct the building geometry
       const buildingHeight = randomValue(2) + 1;
       const buildingWidth = 0.8;
       const buildingGeometry = new THREE.BoxGeometry(
@@ -126,11 +128,19 @@ function main() {
         color: buildingColour,
       });
       const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
+      // construct the wire for the buildings
+      const buildingEdges = new THREE.EdgesGeometry(buildingGeometry);
+      const buildingLines = new THREE.LineSegments(
+        buildingEdges,
+        new THREE.LineBasicMaterial({ color: "#6b705c" })
+      );
       // position the buildings on the platform, but float just above it to aboid z-fighting
-      buildingMesh.position.set(
-        posX - gridSize / 2 + 0.5,
-        buildingHeight / 2 + 0.001,
-        posZ - gridSize / 2 + 0.5
+      [buildingMesh, buildingLines].forEach((item) =>
+        item.position.set(
+          posX - gridSize / 2 + 0.5,
+          buildingHeight / 2 + 0.001,
+          posZ - gridSize / 2 + 0.5
+        )
       );
       buildingMesh.userData = {
         xIndex: posX,
@@ -140,6 +150,7 @@ function main() {
       };
       buildings.push(buildingMesh);
       cityGroup.add(buildingMesh);
+      cityGroup.add(buildingLines);
     }
   }
 
