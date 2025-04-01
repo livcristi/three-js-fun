@@ -84,6 +84,7 @@ function main() {
   const tooltip = document.getElementById("tooltip");
   tooltip.style.display = "none";
   clearPickPosition();
+  let isHovering = false;
 
   // For debugging
   const xElem = document.querySelector("#x");
@@ -173,8 +174,10 @@ function main() {
 
   function updateToolTipData(building) {
     if (building == null || mousePosition.x < 0) {
+      isHovering = false;
       tooltip.style.display = "none";
     } else {
+      isHovering = true;
       const { xIndex, zIndex, height, color } = building.userData;
       tooltip.style.left = `${mousePosition.x + 10}px`;
       tooltip.style.top = `${mousePosition.y + 10}px`;
@@ -199,7 +202,10 @@ function main() {
     const pickedBuilding = pickHelper.pick(pickPosition, buildings, camera);
     updateToolTipData(pickedBuilding);
 
-    controls.update();
+    // Only continue the camera controls if the user is not hovering
+    if (!isHovering) {
+      controls.update();
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }
