@@ -15,10 +15,7 @@ function resizeRendererToDisplaySize(renderer) {
 }
 
 function randomValue(maxValue) {
-  if (maxValue == undefined) {
-    return Math.random();
-  }
-  return Math.random() * maxValue;
+  return Math.random() * (maxValue || 1);
 }
 
 function randomColour() {
@@ -111,17 +108,19 @@ function main() {
   cityGroup.add(platformMesh);
 
   // Add the buildings
-  const buildings = [];
+  const buildings = {};
+  const relationships = {};
   const gridSize = 4;
   for (let posX = 0; posX < gridSize; ++posX) {
     for (let posZ = 0; posZ < gridSize; ++posZ) {
       // construct the building geometry
       const buildingHeight = randomValue(2) + 1;
-      const buildingWidth = 0.8;
+      const buildingWidth = randomValue(0.5) + 0.5;
+      const buildingDepth = randomValue(0.5) + 0.5;
       const buildingGeometry = new THREE.BoxGeometry(
         buildingWidth,
         buildingHeight,
-        buildingWidth
+        buildingDepth
       );
       const buildingColour = randomColour();
       const buildingMaterial = new THREE.MeshBasicMaterial({
@@ -148,11 +147,27 @@ function main() {
         height: buildingHeight,
         color: `#${buildingColour.getHexString()}`,
       };
-      buildings.push(buildingMesh);
+      buildings[`${posX},${posZ}`] = buildingMesh;
       cityGroup.add(buildingMesh);
       cityGroup.add(buildingLines);
     }
   }
+
+  Object.keys(buildings).forEach((key) => {
+    relationships[key] = [];
+
+    // Randomly pick 1-3 connections
+    const numConnections = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < numConnections; i++) {
+      const dx = Math.floor(Math.random() * gridSize);
+      const dz = Math.floor(Math.random() * gridSize);
+      const targetKey = `${dx},${dz}`;
+
+      if (targetKey !== key && !relationships[key].includes(targetKey)) {
+        relationships[key].push(targetKey);
+      }
+    }
+  });
 
   function getCanvasRelativePosition(event) {
     const rect = canvas.getBoundingClientRect();
@@ -199,6 +214,57 @@ function main() {
     }
   }
 
+  function createCurve(from, to) {
+    // const midY = Math.max(from.position.y, to.position.y) + 2; // Raise the curve
+    const midY = 3.5;
+
+    const points = [
+      from.position
+        .clone()
+        .add(new THREE.Vector3(0, from.geometry.parameters.height / 2, 0)), // Start at top
+      new THREE.Vector3(
+        (from.position.x + to.position.x) / 2,
+        midY,
+        (from.position.z + to.position.z) / 2
+      ), // Control point
+      to.position
+        .clone()
+        .add(new THREE.Vector3(0, to.geometry.parameters.height / 2, 0)), // End at top of target
+    ];
+
+    return new THREE.CatmullRomCurve3(points);
+  }
+
+  let activeCurves = [];
+
+  function showConnections(building) {
+    const buildingKey = `${building.userData.xIndex},${building.userData.zIndex}`;
+    // Remove old curves
+    hideConnections();
+
+    if (relationships[buildingKey]) {
+      relationships[buildingKey].forEach((targetKey) => {
+        const from = buildings[buildingKey];
+        const to = buildings[targetKey];
+
+        const curve = createCurve(from, to);
+        const curveGeometry = new THREE.TubeGeometry(curve, 20, 0.05, 8, false);
+        const curveMaterial = new THREE.MeshBasicMaterial({
+          color: "#38a3a5",
+        });
+        const curveMesh = new THREE.Mesh(curveGeometry, curveMaterial);
+
+        cityGroup.add(curveMesh);
+        activeCurves.push(curveMesh);
+      });
+    }
+  }
+
+  function hideConnections() {
+    activeCurves.forEach((curveObj) => cityGroup.remove(curveObj));
+    activeCurves = [];
+  }
+
   // render function
   function render(time) {
     xElem.textContent = camera.position.x.toFixed(3);
@@ -210,12 +276,19 @@ function main() {
       camera.updateProjectionMatrix();
     }
 
-    const pickedBuilding = pickHelper.pick(pickPosition, buildings, camera);
+    const pickedBuilding = pickHelper.pick(
+      pickPosition,
+      Object.values(buildings),
+      camera
+    );
     updateToolTipData(pickedBuilding);
 
     // Only continue the camera controls if the user is not hovering
     if (!isHovering) {
+      hideConnections();
       controls.update();
+    } else {
+      showConnections(pickedBuilding);
     }
     renderer.render(scene, camera);
     requestAnimationFrame(render);
